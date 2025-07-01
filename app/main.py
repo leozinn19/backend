@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
 from app.models.filme import Filme
-from app.db.database import get_all_filmes, get_filme_by_id, add_filme
+from app.db.database import db
 
 app = FastAPI(
     title="API de Filmes",
@@ -25,20 +25,35 @@ def read_root():
 @app.get("/filmes", response_model=List[Filme])
 def listar_filmes():
     """Retorna todos os filmes."""
-    return get_all_filmes()
+    return db.list_filmes()
 
 @app.post("/filmes", response_model=Filme)
 def cadastrar_filme(filme: Filme):
     """Cadastra um filme."""
-    return add_filme(filme)
+    return db.add_filme(filme)
 
 @app.get("/filmes/{id}", response_model=Filme)
 def obter_filme(id: str):
     """Retorna o filme com ID."""
-    filme = get_filme_by_id(id)
+    filme = db.get_filme(id)
     if filme is None:
         raise HTTPException(status_code=404, detail="Filme não encontrado")
     return filme
+
+@app.put("/filmes/{id}", response_model=Filme)
+def editar_filme(id: str, filme: Filme):
+    """Edita filme com ID."""
+    atualizado = db.update_filme(id, filme.dict(exclude_unset=True, exclude={"id"}))
+    if not atualizado:
+        raise HTTPException(status_code=404, detail="Filme não encontrado para atualização")
+    return atualizado
+
+@app.delete("/filmes/{id}", status_code=204)
+def remover_filme(id: str):
+    """Deleta o filme com ID."""
+    sucesso = db.delete_filme(id)
+    if not sucesso:
+        raise HTTPException(status_code=404, detail="Filme não encontrado para remoção")
 
 if __name__ == "__main__":
     import uvicorn
